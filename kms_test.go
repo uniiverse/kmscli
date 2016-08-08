@@ -5,15 +5,16 @@ import (
   "testing"
   "github.com/aws/aws-sdk-go/service/kms"
 )
+const profile string =  "default"
 
 func TestGetKMSSession(t *testing.T) {
-  got := GetKMSSession()
+  got := GetKMSSession(profile)
 
   fmt.Println(got)
 }
 
 func TestListAliases(t *testing.T) {
-  session := GetKMSSession()
+  session := GetKMSSession(profile)
 
   got := ListAliases(session)
 
@@ -21,7 +22,7 @@ func TestListAliases(t *testing.T) {
 }
 
 func TestFilterAliases(t *testing.T) {
-  session := GetKMSSession()
+  session := GetKMSSession(profile)
 
   aliases := ListAliases(session)
 
@@ -33,7 +34,7 @@ func TestFilterAliases(t *testing.T) {
 }
 
 func TestAliasExists(t *testing.T) {
-  session := GetKMSSession()
+  session := GetKMSSession(profile)
 
   aliases := ListAliases(session)
 
@@ -43,7 +44,7 @@ func TestAliasExists(t *testing.T) {
 }
 
 func TestEncrypt(t *testing.T) {
-  svc := GetKMSSession()
+  svc := GetKMSSession(profile)
 
   payload := []byte(`{"Name":"Alice","Body":"Hello","Time":1294706395881547000}`)
   app := "web"
@@ -56,7 +57,7 @@ func TestEncrypt(t *testing.T) {
 
 func TestDecrypt(t *testing.T) {
 
-  svc := GetKMSSession()
+  svc := GetKMSSession(profile)
 
   payload := []byte(`{"Name":"Alice","Body":"Hello","Time":1294706395881547000}`)
   app := "web"
@@ -70,7 +71,7 @@ func TestDecrypt(t *testing.T) {
 }
 
 func TestCreateKey(t *testing.T) {
-  svc := GetKMSSession()
+  svc := GetKMSSession(profile)
 
   result := CreateKey(svc, "blah")
 
@@ -78,7 +79,7 @@ func TestCreateKey(t *testing.T) {
 }
 
 func TestCreateAlias(t *testing.T) {
-  svc := GetKMSSession()
+  svc := GetKMSSession(profile)
 
   targetKey := "b829684d-5066-4cd7-ab44-3f3de80110dc"
   app := "myapp"
@@ -90,7 +91,7 @@ func TestCreateAlias(t *testing.T) {
 }
 
 func TestCreateKeyWithAlias(t *testing.T) {
-  svc := GetKMSSession()
+  svc := GetKMSSession(profile)
 
   app := "myapp2"
   env := "staging"

@@ -3,11 +3,14 @@ package main
 import (
   "github.com/aws/aws-sdk-go/aws"
   "github.com/aws/aws-sdk-go/aws/session"
+  "github.com/aws/aws-sdk-go/aws/credentials"
   "github.com/aws/aws-sdk-go/service/kms"
 )
 
-func GetKMSSession() *kms.KMS {
-  config := &aws.Config{Region: aws.String("us-east-1")}
+func GetKMSSession(profile string) *kms.KMS {
+  config := &aws.Config{
+    Region: aws.String("us-east-1"),
+    Credentials: credentials.NewSharedCredentials("",profile)}
   svc := kms.New(session.New(), config)
 
   return svc

@@ -27,12 +27,12 @@ func CheckName(name string) {
   }
 }
 
-func addSecret(app, env, name string) {
+func addSecret(app, env, name, profile string) {
   CheckApp(app)
   CheckEnv(env)
   CheckName(name)
 
-  CheckAndAddKey(app, env)
+  CheckAndAddKey(app, env, profile)
 
   fmt.Println("Adding secret called:", name)
 
@@ -49,15 +49,15 @@ func addSecret(app, env, name string) {
     //Create
     secrets := map[string]string{}
     secrets[name] = secret
-    ParseEncryptWrite(secrets, app, env, secretPath)
+    ParseEncryptWrite(secrets, app, env, profile, secretPath)
   } else {
-    secrets := ReadDecryptParse(secretPath, app, env)
+    secrets := ReadDecryptParse(secretPath, app, env, profile)
     secrets[name] = secret
-    ParseEncryptWrite(secrets, app, env, secretPath)
+    ParseEncryptWrite(secrets, app, env, profile, secretPath)
   }
 }
 
-func RemoveSecrets(name, app, env string) {
+func RemoveSecrets(name, app, env, profile string) {
   CheckName(name)
   CheckEnv(env)
   CheckApp(app)
@@ -67,15 +67,15 @@ func RemoveSecrets(name, app, env string) {
 
   if(secretsExist) {
     //Decrypt and parse secrets
-    secrets := ReadDecryptParse(secretPath, app, env)
+    secrets := ReadDecryptParse(secretPath, app, env, profile)
     delete(secrets, name)
-    ParseEncryptWrite(secrets, app, env, secretPath)
+    ParseEncryptWrite(secrets, app, env, profile, secretPath)
   } else {
     fmt.Println("No secrets file for env")
   }
 }
 
-func ListSecrets(app, env string) {
+func ListSecrets(app, env, profile string) {
   CheckEnv(env)
   CheckApp(app)
 
@@ -83,7 +83,7 @@ func ListSecrets(app, env string) {
 
   if(secretsExist) {
     encryptedSecrets := ReadFile(secretPath)
-    result := Decrypt(GetKMSSession(), app, env, encryptedSecrets)
+    result := Decrypt(GetKMSSession(profile), app, env, encryptedSecrets)
     fmt.Println(string(result))
   } else {
     fmt.Println("No secrets found for app / env")
@@ -91,24 +91,24 @@ func ListSecrets(app, env string) {
   }
 }
 
-func ReadDecryptParse(path, app, env string) map[string]interface{} {
-  session := GetKMSSession()
+func ReadDecryptParse(path, app, env, profile string) map[string]interface{} {
+  session := GetKMSSession(profile)
   encryptedSecrets := ReadFile(path)
   decryptedSecrets := Decrypt(session, app, env, encryptedSecrets)
   secrets := UnmarshalSecrets(decryptedSecrets)
   return secrets
 }
 
-func ParseEncryptWrite(input interface{}, app, env, path string) {
-  session := GetKMSSession()
+func ParseEncryptWrite(input interface{}, app, env, profile, path string) {
+  session := GetKMSSession(profile)
   newJson := MarshalSecrets(input)
   encryptedPayload := Encrypt(session, app, env, newJson)
   WriteFile(path,encryptedPayload)
 
 }
 
-func CheckAndAddKey(app, env string) {
-  session := GetKMSSession()
+func CheckAndAddKey(app, env, profile string) {
+  session := GetKMSSession(profile)
   aliases := ListAliases(session)
   aliasExists := AliasExists(GetAliasName(app, env), aliases)
 
@@ -158,6 +158,7 @@ func MarshalSecrets(input interface{}) []byte {
 func main() {
   var env string
   var appName string
+  var profile string
 
   app := cli.NewApp()
 
@@ -181,6 +182,12 @@ func main() {
       Usage: "The Application to target",
       Destination: &appName,
     },
+    cli.StringFlag{
+      Name: "profile, p",
+      Usage: "AWS Profile to use",
+      Destination: &profile,
+      Value: "default",
+    },
   }
 
   app.Commands = []cli.Command{
@@ -192,7 +199,7 @@ func main() {
       Action: func(c *cli.Context) error {
         fmt.Println("Add to encrypted file")
         fmt.Println("Env", env)
-        addSecret(appName, env, c.Args().Get(0))
+        addSecret(appName, env, c.Args().Get(0), profile)
         fmt.Println("File written")
         return nil
       },
@@ -204,7 +211,7 @@ func main() {
       ArgsUsage: "[name]",
       Action: func(c *cli.Context) error {
         fmt.Println("Remove secret")
-        RemoveSecrets(c.Args().Get(0), appName, env)
+        RemoveSecrets(c.Args().Get(0), appName, env, profile)
         fmt.Println("Secret Removed")
         return nil
       },
@@ -214,7 +221,7 @@ func main() {
       Aliases: []string{"l"},
       Usage: "List secrets for a given environment",
       Action: func(c *cli.Context) error {
-        ListSecrets(appName, env)
+        ListSecrets(appName, env, profile)
         return nil
       },
     },
